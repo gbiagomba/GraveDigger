@@ -1,3 +1,4 @@
+#!/usr/bin/env sh
 # Author: Gilles Biagomba
 # Program: GraveDigger.sh
 # Description: This script was designed to help you find files, mass copy files and zip them.\n
@@ -48,10 +49,8 @@ n=0
 echo "Locating your files....hang in there, we are almost done"
 if [ -z $FILTER ]; then
 	FILES=($(locate *.$FTYPE | grep $FTYPE))
-	${$FILES[n++]}
 else
 	FILES=($(locate *.$FTYPE | grep $FTYPE | grep -i $FILTER))
-	${$FILES[n++]}
 fi
 
 # Zipping up said files
