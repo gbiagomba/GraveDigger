@@ -24,6 +24,9 @@ echo "What is the password for the zip file?"
 read ZPSS
 echo
 
+# Command to swap with
+# for i in $(cat rules_list.txt); do find . -type f | xargs grep -e "$i" | grep -v "rules_list.txt"; done 
+
 # Checking to see if variables are empty
 if [ -z $FTYPE ]; then
 	echo "You did not enter a filetype to search, please try again"
