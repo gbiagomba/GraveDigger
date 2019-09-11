@@ -1,0 +1,1 @@
+for i in $(cat rules_list.txt); do find . -type f | xargs grep -e "$i" | grep -v "rules_list.txt" | tee -a ../sesnative_filesearch.txt; done
