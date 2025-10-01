@@ -1,0 +1,89 @@
+name: ci
+
+on:
+  push:
+    branches: [ main, master ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  unix-test:
+    name: Unix tests (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+          - os: ubuntu-22.04-arm64
+          - os: macos-13
+          - os: macos-14
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up PowerShell (for Makefile test)
+        if: runner.os != 'Windows'
+        uses: PowerShell/PowerShell-DEPRECATED@v1
+        with:
+          version: '7.4.3'
+      - name: POSIX script test (no encryption)
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p .tmp/sub
+          printf 'one\n' > .tmp/a.log
+          printf 'two\n' > .tmp/sub/b.log
+          ./GraveDigger.sh -t log -o ci-logs -r .tmp
+          test -f ci-logs.tar.gz
+      - name: POSIX script test (encryption)
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p .tmp2
+          printf 'x\n' > .tmp2/x.log
+          printf 'password\n' | ./GraveDigger.sh -t log -o ci-logs-enc -r .tmp2 -p
+          test -f ci-logs-enc.tar.gz.enc
+      - name: PowerShell test (no encryption)
+        shell: pwsh
+        run: |
+          mkdir -p .tmp3
+          Set-Content -LiteralPath .tmp3/t.txt -Value 't'
+          ./GraveDigger.ps1 -Extension txt -Output ci-txt -Root .tmp3
+          if (-not (Test-Path ci-txt.zip)) { throw 'Missing ci-txt.zip' }
+
+  windows-test:
+    name: Windows tests
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: PowerShell test (no encryption)
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force tmp | Out-Null
+          Set-Content -LiteralPath tmp/w.txt -Value 'w'
+          ./GraveDigger.ps1 -Extension txt -Output ci-w -Root tmp
+          if (-not (Test-Path ci-w.zip)) { throw 'Missing ci-w.zip' }
+
+  release:
+    name: Release on tag
+    needs: [unix-test, windows-test]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build release package
+        shell: bash
+        run: |
+          set -euxo pipefail
+          tar -czf gravedigger-${GITHUB_REF_NAME}.tar.gz README.md LICENSE GraveDigger.sh GraveDigger.ps1 rules_list.list || true
+          shasum -a 256 GraveDigger.sh GraveDigger.ps1 gravedigger-${GITHUB_REF_NAME}.tar.gz > SHA256SUMS.txt
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            GraveDigger.sh
+            GraveDigger.ps1
+            gravedigger-${{ github.ref_name }}.tar.gz
+            SHA256SUMS.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

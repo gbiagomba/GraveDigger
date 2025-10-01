@@ -1,0 +1,18 @@
+# Archives and artifacts
+*.tar.gz
+*.tar.gz.enc
+*.zip
+*.zip.enc
+
+# Test outputs
+.tmp-test/
+test-logs*
+gravedigger-release.tar.gz
+*-FILE-MANIFEST.txt
+
+# OS/editor junk
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
